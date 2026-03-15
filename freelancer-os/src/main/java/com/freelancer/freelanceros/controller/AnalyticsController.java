@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/analytics")
+@RequestMapping("/api/analytics")
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
@@ -20,7 +20,6 @@ public class AnalyticsController {
         return analyticsService.getAnalytics();
     }
 
-    // NEW ENDPOINT
     @GetMapping("/client-risk/{clientId}")
     public boolean checkClientRisk(@PathVariable Long clientId) {
         return analyticsService.isClientRisky(clientId);
