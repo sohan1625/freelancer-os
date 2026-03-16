@@ -21,53 +21,48 @@ public class ReminderService {
     }
 
     public void sendInvoiceCreatedNotification(Invoice invoice) {
+
         Client client = invoice.getClient();
         if (client == null) return;
 
         String invoiceNumber = "INV-" + invoice.getId();
         String formattedAmount = formatAmount(invoice.getAmount().doubleValue());
         String formattedDate = formatDate(invoice.getDueDate().toString());
+
         String subject = "Invoice " + invoiceNumber + " – ₹" + formattedAmount + " Due";
+
+        String paymentUrl = "https://freelanceros.com/pay/" + invoice.getId();
 
         String html = buildHtml(
                 client.getName(),
                 invoiceNumber,
                 formattedAmount,
                 formattedDate,
-                invoice.getStatus(),
-                client.getEmail(),
-                client.getPhone() != null ? client.getPhone() : "N/A",
-                "You have received a new invoice. Please review the details below and ensure payment is completed before the due date.",
-                "#4CAF50",
-                "NEW INVOICE"
+                paymentUrl
         );
 
         sendHtmlEmail(client.getEmail(), subject, html);
     }
 
     public void sendReminder(Invoice invoice) {
+
         Client client = invoice.getClient();
         if (client == null) return;
 
         String invoiceNumber = "INV-" + invoice.getId();
         String formattedAmount = formatAmount(invoice.getAmount().doubleValue());
         String formattedDate = formatDate(invoice.getDueDate().toString());
-        String subject = "Payment Reminder – Invoice " + invoiceNumber + " is " + invoice.getStatus();
 
-        String accentColor = invoice.getStatus().equalsIgnoreCase("OVERDUE") ? "#E53935" : "#FB8C00";
-        String badge = invoice.getStatus().equalsIgnoreCase("OVERDUE") ? "OVERDUE" : "REMINDER";
+        String subject = "Payment Reminder – Invoice " + invoiceNumber;
+
+        String paymentUrl = "https://freelanceros.com/pay/" + invoice.getId();
 
         String html = buildHtml(
                 client.getName(),
                 invoiceNumber,
                 formattedAmount,
                 formattedDate,
-                invoice.getStatus(),
-                client.getEmail(),
-                client.getPhone() != null ? client.getPhone() : "N/A",
-                "This is a reminder that your invoice is still unpaid. Please ensure payment is completed as soon as possible.",
-                accentColor,
-                badge
+                paymentUrl
         );
 
         sendHtmlEmail(client.getEmail(), subject, html);
@@ -78,105 +73,198 @@ public class ReminderService {
             String invoiceNumber,
             String amount,
             String dueDate,
-            String status,
-            String email,
-            String phone,
-            String message,
-            String accentColor,
-            String badge
+            String paymentUrl
     ) {
+
         return "<!DOCTYPE html>" +
-                "<html><head><meta charset='UTF-8'>" +
-                "<meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
-                "<style>" +
-                "  body { margin: 0; padding: 0; background: #f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; color: #333; }" +
-                "  .wrapper { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }" +
-                "  .header { background: " + accentColor + "; padding: 32px 40px; text-align: center; }" +
-                "  .header h1 { margin: 0; color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: 1px; }" +
-                "  .header p { margin: 6px 0 0; color: rgba(255,255,255,0.85); font-size: 13px; }" +
-                "  .badge { display: inline-block; background: rgba(255,255,255,0.2); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 2px; padding: 4px 12px; border-radius: 20px; margin-bottom: 10px; }" +
-                "  .body { padding: 36px 40px; }" +
-                "  .greeting { font-size: 16px; color: #333; margin-bottom: 8px; }" +
-                "  .message { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 28px; }" +
-                "  .section-title { font-size: 11px; font-weight: 700; color: #999; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; }" +
-                "  .card { background: #f9fafc; border-radius: 8px; padding: 20px 24px; margin-bottom: 20px; }" +
-                "  .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }" +
-                "  .row:last-child { border-bottom: none; }" +
-                "  .row .label { font-size: 13px; color: #888; }" +
-                "  .row .value { font-size: 13px; color: #333; font-weight: 600; }" +
-                "  .amount-highlight { font-size: 28px; font-weight: 700; color: " + accentColor + "; text-align: center; padding: 16px 0 8px; }" +
-                "  .status-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; background: " + accentColor + "22; color: " + accentColor + "; }" +
-                "  .footer { background: #f9fafc; padding: 24px 40px; text-align: center; border-top: 1px solid #eee; }" +
-                "  .footer p { margin: 4px 0; font-size: 12px; color: #aaa; }" +
-                "  .footer .brand { font-size: 14px; font-weight: 700; color: #555; margin-bottom: 4px; }" +
-                "</style></head><body>" +
-                "<div class='wrapper'>" +
+                "<html>" +
+                "<head>" +
+                "<meta charset='UTF-8'>" +
+                "<meta name='viewport' content='width=device-width'>" +
+                "</head>" +
 
-                // Header
-                "  <div class='header'>" +
-                "    <div class='badge'>" + badge + "</div>" +
-                "    <h1>FreelancerOS</h1>" +
-                "    <p>Automated Billing &amp; Payment Tracking</p>" +
-                "  </div>" +
+                "<body style='margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;'>"
 
-                // Body
-                "  <div class='body'>" +
-                "    <p class='greeting'>Hello, <strong>" + clientName + "</strong> 👋</p>" +
-                "    <p class='message'>" + message + "</p>" +
+                + "<table width='100%' cellpadding='0' cellspacing='0' style='background:#f4f6f8;padding:40px 0;'>"
+                + "<tr>"
+                + "<td align='center'>"
 
-                // Amount highlight
-                "    <div class='amount-highlight'>₹" + amount + "</div>" +
+                + "<table width='600' cellpadding='0' cellspacing='0' style='background:#ffffff;border-radius:10px;padding:40px;'>"
 
-                // Invoice Details
-                "    <p class='section-title'>Invoice Details</p>" +
-                "    <div class='card'>" +
-                "      <div class='row'><span class='label'>Invoice Number</span><span class='value'>" + invoiceNumber + "</span></div>" +
-                "      <div class='row'><span class='label'>Amount Due</span><span class='value'>₹" + amount + "</span></div>" +
-                "      <div class='row'><span class='label'>Due Date</span><span class='value'>" + dueDate + "</span></div>" +
-                "      <div class='row'><span class='label'>Status</span><span class='value'><span class='status-badge'>" + status + "</span></span></div>" +
-                "    </div>" +
+                // HEADER
+                + "<tr>"
+                + "<td align='center' style='padding-bottom:30px;'>"
+                + "<h2 style='margin:0;color:#111;'>FreelancerOS</h2>"
+                + "<p style='margin:6px 0;color:#777;font-size:13px;'>Automated Billing for Freelancers</p>"
+                + "</td>"
+                + "</tr>"
 
-                // Client Details
-                "    <p class='section-title'>Client Information</p>" +
-                "    <div class='card'>" +
-                "      <div class='row'><span class='label'>Name</span><span class='value'>" + clientName + "</span></div>" +
-                "      <div class='row'><span class='label'>Email</span><span class='value'>" + email + "</span></div>" +
-                "      <div class='row'><span class='label'>Phone</span><span class='value'>" + phone + "</span></div>" +
-                "    </div>" +
+                // GREETING
+                + "<tr>"
+                + "<td style='padding-bottom:10px;'>"
+                + "<h2 style='margin:0;font-size:22px;color:#111;'>Hi " + clientName + ",</h2>"
+                + "</td>"
+                + "</tr>"
 
-                "  </div>" +
+                + "<tr>"
+                + "<td style='color:#555;font-size:15px;line-height:1.6;padding-bottom:25px;'>"
+                + "Thanks for using FreelancerOS. This is an invoice for your recent purchase."
+                + "</td>"
+                + "</tr>"
 
-                // Footer
-                "  <div class='footer'>" +
-                "    <p class='brand'>FreelancerOS</p>" +
-                "    <p>If payment has already been made, kindly ignore this message.</p>" +
-                "    <p>This is an automated email. Please do not reply.</p>" +
-                "  </div>" +
+                // INVOICE CARD
+                + "<tr>"
+                + "<td style='padding-bottom:30px;'>"
 
-                "</div></body></html>";
+                + "<table width='100%' cellpadding='0' cellspacing='0' "
+                + "style='background:#f8fafc;border-radius:8px;padding:24px;'>"
+
+                + "<tr>"
+                + "<td style='padding-bottom:14px;'>"
+                + "<div style='font-size:13px;color:#6b7280;'>Invoice</div>"
+                + "<div style='font-size:16px;font-weight:600;color:#111;'>" + invoiceNumber + "</div>"
+                + "</td>"
+                + "</tr>"
+
+                + "<tr>"
+                + "<td style='padding-bottom:14px;'>"
+                + "<div style='font-size:13px;color:#6b7280;'>Amount Due</div>"
+                + "<div style='font-size:20px;font-weight:700;color:#111;'>₹" + amount + "</div>"
+                + "</td>"
+                + "</tr>"
+
+                + "<tr>"
+                + "<td>"
+                + "<div style='font-size:13px;color:#6b7280;'>Due Date</div>"
+                + "<div style='font-size:16px;font-weight:600;color:#111;'>" + dueDate + "</div>"
+                + "</td>"
+                + "</tr>"
+
+                + "</table>"
+                + "</td>"
+                + "</tr>"
+
+                // BUTTONS
+                + "<tr>"
+                + "<td align='center' style='padding-bottom:30px;'>"
+
+                + "<a href='" + paymentUrl + "' "
+                + "style='background:#2563eb;color:#ffffff;padding:14px 28px;border-radius:6px;"
+                + "text-decoration:none;font-weight:600;font-size:14px;margin-right:10px;'>"
+                + "Pay Invoice"
+                + "</a>"
+
+                + "<a href='" + paymentUrl + "' "
+                + "style='border:1px solid #d1d5db;color:#111;padding:14px 26px;border-radius:6px;"
+                + "text-decoration:none;font-size:14px;'>"
+                + "View Invoice"
+                + "</a>"
+
+                + "</td>"
+                + "</tr>"
+
+                // BREAKDOWN TABLE
+                + "<tr>"
+                + "<td style='padding-bottom:30px;'>"
+
+                + "<table width='100%' cellpadding='12' cellspacing='0' "
+                + "style='border:1px solid #eee;border-radius:6px;font-size:14px;'>"
+
+                + "<tr style='background:#fafafa;'>"
+                + "<td>Description</td>"
+                + "<td align='right'>Amount</td>"
+                + "</tr>"
+
+                + "<tr>"
+                + "<td>Invoice Payment</td>"
+                + "<td align='right'>₹" + amount + "</td>"
+                + "</tr>"
+
+                + "<tr>"
+                + "<td style='font-weight:600;'>Total</td>"
+                + "<td align='right' style='font-weight:600;'>₹" + amount + "</td>"
+                + "</tr>"
+
+                + "</table>"
+                + "</td>"
+                + "</tr>"
+
+                // SUPPORT TEXT
+                + "<tr>"
+                + "<td style='color:#666;font-size:14px;line-height:1.6;padding-bottom:20px;'>"
+                + "If you have any questions about this invoice, simply reply to this email "
+                + "or contact our support team."
+                + "</td>"
+                + "</tr>"
+
+                + "<tr>"
+                + "<td style='padding-bottom:30px;'>"
+                + "Cheers,<br>The FreelancerOS Team"
+                + "</td>"
+                + "</tr>"
+
+                // DIVIDER
+                + "<tr>"
+                + "<td><hr style='border:none;border-top:1px solid #eee;'></td>"
+                + "</tr>"
+
+                // FALLBACK LINK
+                + "<tr>"
+                + "<td style='font-size:13px;color:#777;padding-top:20px;'>"
+                + "If you're having trouble with the button above, copy and paste the URL below into your browser."
+                + "</td>"
+                + "</tr>"
+
+                + "<tr>"
+                + "<td style='font-size:13px;color:#2563eb;padding-top:10px;'>"
+                + paymentUrl +
+                "</td>"
+                + "</tr>"
+
+                + "</table>"
+
+                // FOOTER
+                + "<table width='600' style='margin-top:20px;text-align:center;color:#999;font-size:12px;'>"
+                + "<tr><td><strong>FreelancerOS</strong></td></tr>"
+                + "<tr><td>Automated Billing for Freelancers</td></tr>"
+                + "<tr><td>support@freelanceros.com</td></tr>"
+                + "<tr><td>© 2026 FreelancerOS</td></tr>"
+                + "</table>"
+
+                + "</td>"
+                + "</tr>"
+                + "</table>"
+
+                + "</body></html>";
     }
 
     private void sendHtmlEmail(String to, String subject, String html) {
+
         try {
+
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(html, true);
+
             mailSender.send(message);
-            System.out.println("✅ HTML Email sent to " + to);
+
         } catch (Exception e) {
-            System.out.println("❌ Email failed: " + e.getMessage());
+            System.out.println("Email failed: " + e.getMessage());
         }
     }
 
     private String formatAmount(double amount) {
+
         NumberFormat nf = NumberFormat.getNumberInstance(new Locale("en", "IN"));
         nf.setMaximumFractionDigits(0);
         return nf.format(amount);
     }
 
     private String formatDate(String dateStr) {
+
         try {
             java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
             return date.format(DateTimeFormatter.ofPattern("d MMMM yyyy"));
