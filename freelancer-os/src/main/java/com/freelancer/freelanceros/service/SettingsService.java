@@ -1,41 +1,74 @@
 package com.freelancer.freelanceros.service;
 
-import com.freelancer.freelanceros.model.Settings;
-import com.freelancer.freelanceros.repository.SettingsRepository;
+import com.freelancer.freelanceros.model.User;
+import com.freelancer.freelanceros.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SettingsService {
 
-    private final SettingsRepository settingsRepository;
+    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
+    private final PasswordEncoder passwordEncoder;
 
-    public SettingsService(SettingsRepository settingsRepository) {
-        this.settingsRepository = settingsRepository;
+    public SettingsService(UserRepository userRepository,
+                           CurrentUserService currentUserService,
+                           PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.currentUserService = currentUserService;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // Get settings — always returns the first row
-    // Creates default settings if none exist
-    public Settings getSettings() {
-        List<Settings> all = settingsRepository.findAll();
-        if (all.isEmpty()) {
-            Settings defaults = new Settings();
-            defaults.setName("Your Name");
-            defaults.setEmail("you@example.com");
-            defaults.setCompany("Your Company");
-            defaults.setPhone("");
-            return settingsRepository.save(defaults);
+    // ── Update display name ───────────────────────────────────────────────────
+
+    public User updateName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new RuntimeException("Name cannot be empty.");
         }
-        return all.get(0);
+        User user = currentUserService.getCurrentUser();
+        user.setName(name.trim());
+        return userRepository.save(user);
     }
 
-    // Save/update settings
-    public Settings saveSettings(Settings settings) {
-        List<Settings> all = settingsRepository.findAll();
-        if (!all.isEmpty()) {
-            settings.setId(all.get(0).getId());
+    // ── Change password ───────────────────────────────────────────────────────
+
+    public void changePassword(String oldPassword, String newPassword) {
+        if (oldPassword == null || oldPassword.isBlank()) {
+            throw new RuntimeException("Current password is required.");
         }
-        return settingsRepository.save(settings);
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new RuntimeException("New password must be at least 6 characters.");
+        }
+
+        User user = currentUserService.getCurrentUser();
+
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new RuntimeException("Current password is incorrect.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    // ── Delete current account and workspace data ───────────────────────────
+
+    @Transactional
+    public void deleteCurrentAccount() {
+        User user = currentUserService.getCurrentUser();
+        Long userId = user.getId();
+        String email = user.getEmail();
+
+        if (userId == null) {
+            throw new RuntimeException("User account not found.");
+        }
+
+        userRepository.deleteById(userId);
+        userRepository.flush();
+
+        if (email != null && userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Failed to delete account. Please try again.");
+        }
     }
 }

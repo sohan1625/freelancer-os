@@ -2,6 +2,7 @@ package com.freelancer.freelanceros.service;
 
 import com.freelancer.freelanceros.model.Client;
 import com.freelancer.freelanceros.model.Invoice;
+import com.freelancer.freelanceros.model.User;
 import com.freelancer.freelanceros.repository.ClientRepository;
 import com.freelancer.freelanceros.repository.InvoiceRepository;
 import org.springframework.stereotype.Service;
@@ -13,56 +14,70 @@ public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final ClientRepository clientRepository;
-    private final ReminderService reminderService;
+    private final CurrentUserService currentUserService;
+    private final EmailService emailService;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           ClientRepository clientRepository,
-                          ReminderService reminderService) {
+                          CurrentUserService currentUserService,
+                          EmailService emailService) {
         this.invoiceRepository = invoiceRepository;
         this.clientRepository = clientRepository;
-        this.reminderService = reminderService;
+        this.currentUserService = currentUserService;
+        this.emailService = emailService;
     }
 
-    // Creates invoice and immediately sends email to client
     public Invoice createInvoiceForClient(Long clientId, Invoice invoice) {
-        Client client = clientRepository.findById(clientId)
+
+        User user = currentUserService.getCurrentUser();
+
+        Client client = clientRepository.findByIdWithWorkspace(clientId)
                 .orElseThrow(() -> new RuntimeException("Client not found"));
+
+        client.getWorkspace().getId();
+
+        // 🔥 MULTI-TENANT CHECK
+        if (!client.getWorkspace().getId().equals(user.getWorkspace().getId())) {
+            throw new RuntimeException("Unauthorized");
+        }
+
         invoice.setClient(client);
+
+        if (invoice.getStatus() == null) {
+            invoice.setStatus("PENDING");
+        }
+
         Invoice saved = invoiceRepository.save(invoice);
-        reminderService.sendInvoiceCreatedNotification(saved);
+
+        // Send email async — does not block the response, does not fail the request
+        emailService.sendInvoiceCreatedEmail(saved);
+
         return saved;
     }
 
-    // Returns all invoices
-    public List<Invoice> getAllInvoices() {
-        return invoiceRepository.findAll();
-    }
-
-    // Returns invoices for a specific client
     public List<Invoice> getInvoicesByClient(Long clientId) {
-        Client client = clientRepository.findById(clientId)
-                .orElseThrow(() -> new RuntimeException("Client not found"));
-        return invoiceRepository.findByClient(client);
+        return invoiceRepository.findByClientId(clientId);
     }
 
-    // Marks invoice as PAID
+    public List<Invoice> getAllInvoices() {
+        User user = currentUserService.getCurrentUser();
+        return invoiceRepository.findAllByWorkspaceIdWithClient(user.getWorkspace().getId());
+    }
+
     public Invoice markInvoicePaid(Long invoiceId) {
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new RuntimeException("Invoice not found"));
+
         invoice.setStatus("PAID");
+
         return invoiceRepository.save(invoice);
     }
 
-    // Filter by status
     public List<Invoice> getInvoicesByStatus(String status) {
         return invoiceRepository.findByStatus(status);
     }
 
-    // Delete invoice by ID
     public void deleteInvoice(Long invoiceId) {
-        if (!invoiceRepository.existsById(invoiceId)) {
-            throw new RuntimeException("Invoice not found");
-        }
         invoiceRepository.deleteById(invoiceId);
     }
 }

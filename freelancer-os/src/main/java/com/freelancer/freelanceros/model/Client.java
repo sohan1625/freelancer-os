@@ -1,10 +1,14 @@
 package com.freelancer.freelanceros.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import java.util.List;
+
+import java.util.UUID;
 
 @Entity
+@Table(name = "clients")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Client {
 
     @Id
@@ -12,52 +16,37 @@ public class Client {
     private Long id;
 
     private String name;
+
     private String email;
+
     private String phone;
 
-    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Column(unique = true)
+    private String portalToken;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "workspace_id")
     @JsonIgnore
-    private List<Invoice> invoices;
+    private Workspace workspace;
 
-    public Client() {}
-
-    public Long getId() {
-        return id;
+    public Client() {
+        this.portalToken = UUID.randomUUID().toString();
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Long getId() { return id; }
 
-    public String getName() {
-        return name;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public String getEmail() {
-        return email;
-    }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    public String getPortalToken() { return portalToken; }
+    public void setPortalToken(String portalToken) { this.portalToken = portalToken; }
 
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public List<Invoice> getInvoices() {
-        return invoices;
-    }
-
-    public void setInvoices(List<Invoice> invoices) {
-        this.invoices = invoices;
-    }
+    public Workspace getWorkspace() { return workspace; }
+    public void setWorkspace(Workspace workspace) { this.workspace = workspace; }
 }
