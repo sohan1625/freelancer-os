@@ -4,6 +4,18 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# ==========================================
+# ENVIRONMENT & SECRETS (CRITICAL)
+# ==========================================
+application.properties
+application-*.properties
+application.yml
+application-*.yml
+.env
+.env.local
+.env.*.local
+http-client.env.json
+
 ### STS ###
 .apt_generated
 .classpath
@@ -31,5 +43,33 @@ build/
 
 ### VS Code ###
 .vscode/
-freelancer-os/src/main/resources/application.properties
-src/main/resources/application.properties
+
+# ==========================================
+# BUILD & COMPILATION
+# ==========================================
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# ==========================================
+# LOGS & TEMP FILES
+# ==========================================
+logs/
+*.log
+*.log.*
+temp/
+tmp/
+*.tmp
+
+# ==========================================
+# OS FILES
+# ==========================================
+.DS_Store
+Thumbs.db
+.classpath
+.factorypath

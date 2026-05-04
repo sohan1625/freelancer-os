@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -16,12 +17,14 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    private final Key SECRET_KEY =
-            Keys.hmacShaKeyFor("freelancerosfreelancerosfreelancerosfreelanceros".getBytes());
+    @Value("${app.jwt.secret}")
+    private String jwtSecret;
 
-    // ⏱️ Expiry
-    private static final long ACCESS_EXPIRATION = 1000 * 60 * 15; // 15 min
-    private static final long REFRESH_EXPIRATION = 1000L * 60 * 60 * 24 * 7; // 7 days
+    @Value("${app.jwt.access-expiration:900000}")
+    private long accessExpiration;
+
+    @Value("${app.jwt.refresh-expiration:604800000}")
+    private long refreshExpiration;
 
     // ─────────────────────────────────────────────
 
@@ -36,11 +39,11 @@ public class JwtService {
     // ─────────────────────────────────────────────
 
     public String generateAccessToken(UserDetails userDetails) {
-        return generateToken(userDetails, ACCESS_EXPIRATION, "ACCESS");
+        return generateToken(userDetails, accessExpiration, "ACCESS");
     }
 
     public String generateRefreshToken(UserDetails userDetails) {
-        return generateToken(userDetails, REFRESH_EXPIRATION, "REFRESH");
+        return generateToken(userDetails, refreshExpiration, "REFRESH");
     }
 
     private String generateToken(UserDetails userDetails, long expiration, String type) {
@@ -53,7 +56,7 @@ public class JwtService {
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(SECRET_KEY, SignatureAlgorithm.HS256)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -94,9 +97,26 @@ public class JwtService {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(SECRET_KEY)
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    private Key getSigningKey() {
+        if (jwtSecret == null || jwtSecret.isEmpty()) {
+            throw new IllegalStateException(
+                "JWT_SECRET environment variable is not set. " +
+                "Generate a secret with: openssl rand -base64 32"
+            );
+        }
+        byte[] keyBytes = jwtSecret.getBytes();
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException(
+                "JWT_SECRET must be at least 32 characters long. " +
+                "Current length: " + keyBytes.length
+            );
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 }

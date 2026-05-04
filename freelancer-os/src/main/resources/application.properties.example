@@ -1,0 +1,70 @@
+# This file is an EXAMPLE. DO NOT commit actual secrets here.
+# Copy this file to application.properties and fill in your actual values.
+# Keep application.properties in .gitignore
+
+# ==========================================
+# DATABASE CONFIGURATION
+# ==========================================
+# Required: PostgreSQL connection details
+spring.datasource.url=jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:freelancer_os}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:change_me_in_env}
+
+# Hibernate Configuration
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+spring.jpa.open-in-view=false
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.properties.hibernate.format_sql=true
+
+# ==========================================
+# SERVER CONFIGURATION
+# ==========================================
+server.port=${SERVER_PORT:8081}
+# IMPORTANT: Bind to localhost in development, use specific IP in production
+server.address=${SERVER_ADDRESS:127.0.0.1}
+server.servlet.context-path=/
+
+# ==========================================
+# JWT CONFIGURATION
+# ==========================================
+# CRITICAL: Generate a strong random secret (min 32 chars)
+# Generate with: openssl rand -base64 32
+app.jwt.secret=${JWT_SECRET:change_me_in_env}
+app.jwt.access-expiration=${JWT_ACCESS_EXPIRATION:900000}
+app.jwt.refresh-expiration=${JWT_REFRESH_EXPIRATION:604800000}
+
+# ==========================================
+# EMAIL CONFIGURATION (Gmail SMTP)
+# ==========================================
+# For Gmail: Use App Password (not your main password)
+# Enable 2FA on Gmail and generate App Password here: https://myaccount.google.com/apppasswords
+spring.mail.host=${MAIL_HOST:smtp.gmail.com}
+spring.mail.port=${MAIL_PORT:587}
+spring.mail.username=${MAIL_USERNAME:your-email@gmail.com}
+spring.mail.password=${MAIL_PASSWORD:your-app-password}
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+spring.mail.properties.mail.smtp.starttls.required=true
+spring.mail.properties.mail.smtp.connectiontimeout=5000
+spring.mail.properties.mail.smtp.timeout=5000
+spring.mail.properties.mail.smtp.writetimeout=5000
+
+# ==========================================
+# SECURITY CONFIGURATION
+# ==========================================
+# Disable auto-config of UserDetailsService
+spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+# ==========================================
+# ACTUATOR (Optional - for monitoring)
+# ==========================================
+management.endpoints.web.exposure.include=health,info
+management.endpoint.health.show-details=when-authorized
+
+# ==========================================
+# LOGGING
+# ==========================================
+logging.level.root=INFO
+logging.level.com.freelancer.freelanceros=DEBUG
+logging.level.org.springframework.security=DEBUG
