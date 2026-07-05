@@ -3,6 +3,12 @@
 # Keep application.properties in .gitignore
 
 # ==========================================
+# ENVIRONMENT CONFIGURATION
+# ==========================================
+# Load local .env values automatically when present
+spring.config.import=optional:file:.env[.properties]
+
+# ==========================================
 # DATABASE CONFIGURATION
 # ==========================================
 # Required: PostgreSQL connection details
