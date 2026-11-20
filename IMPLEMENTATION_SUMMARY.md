@@ -135,19 +135,22 @@ VITE_API_BASE_URL=http://localhost:8081
 
 ---
 
-## 📋 Deployment Checklist
+## 📋 Deployment & Security Checklist
 
-- [ ] **Generated** all required secrets (JWT, DB password, etc.)
-- [ ] **Created** `.env` files locally (not committed)
-- [ ] **Tested** backend runs without hardcoded secret errors
-- [ ] **Tested** database connection with environment variable
-- [ ] **Tested** email sending with Gmail App Password
-- [ ] **Verified** no secrets in Git history: `git log -p | grep -i password`
+- [x] **Generated** all required secrets (JWT, DB password, etc.)
+- [x] **Created** `.env` files locally (properly ignored in `.gitignore`)
+- [x] **Tested** backend runs with environment-based configuration without errors
+- [x] **Tested** database connection with environment variables (PostgreSQL connected)
+- [x] **Tested & Validated** Gmail credentials and SMTP authentication (`smtp.gmail.com:587` passed)
+- [x] **Implemented & Validated** Gmail & RFC email format validators on backend and frontend
+- [x] **Implemented & Validated** OWASP strong password policy (8-128 chars, mixed case, numbers, symbols)
+- [x] **Implemented** Real-time interactive password strength checklist & meter on frontend UI
+- [x] **Implemented** Global Exception Handler (`GlobalExceptionHandler`) to prevent information leakage
+- [x] **Implemented** OWASP HTTP security headers (DENY frame embedding, nosniff content types)
+- [x] **Verified** sensitive files (`.env`, `application.properties`) removed from Git tracking
 - [ ] **Set up** CI/CD with environment variables (GitHub Actions, etc.)
 - [ ] **Deployed** to staging with environment variables
-- [ ] **Tested** all features work in staging environment
 - [ ] **Enabled** GitHub Secret Scanning (Settings > Security & Analysis)
-- [ ] **Rotated** credentials if this was sensitive data before
 
 ---
 

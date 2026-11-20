@@ -2,8 +2,6 @@ package com.freelancer.freelanceros.controller;
 
 import com.freelancer.freelanceros.model.RecurringInvoice;
 import com.freelancer.freelanceros.model.RecurringInvoiceRequest;
-import com.freelancer.freelanceros.model.User;
-import com.freelancer.freelanceros.service.CurrentUserService;
 import com.freelancer.freelanceros.service.RecurringInvoiceService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,24 +13,28 @@ import java.util.List;
 public class RecurringInvoiceController {
 
     private final RecurringInvoiceService service;
-    private final CurrentUserService currentUserService;
 
-    public RecurringInvoiceController(RecurringInvoiceService service,
-                                      CurrentUserService currentUserService) {
+    public RecurringInvoiceController(RecurringInvoiceService service) {
         this.service = service;
-        this.currentUserService = currentUserService;
     }
 
     @GetMapping
     public List<RecurringInvoice> getAll() {
-        User user = currentUserService.getCurrentUser();
-        return service.getAll(user.getWorkspace().getId());
+        return service.getAll();
     }
 
     @PostMapping
     public RecurringInvoice create(@RequestBody RecurringInvoiceRequest req) {
-        User user = currentUserService.getCurrentUser();
-        return service.create(user.getWorkspace().getId(), req);
+        return service.create(req);
+    }
+
+    @PatchMapping("/{id}/time")
+    public RecurringInvoice updateScheduledTime(@PathVariable Long id,
+                                                @RequestBody ScheduleTimeRequest request) {
+        if (request == null || request.scheduledTime() == null || request.scheduledTime().isBlank()) {
+            throw new IllegalArgumentException("Scheduled time is required");
+        }
+        return service.updateScheduledTime(id, request.scheduledTime());
     }
 
     @PatchMapping("/{id}/deactivate")
@@ -46,4 +48,6 @@ public class RecurringInvoiceController {
         service.delete(id);
         return ResponseEntity.ok().build();
     }
+
+    public record ScheduleTimeRequest(String scheduledTime) {}
 }

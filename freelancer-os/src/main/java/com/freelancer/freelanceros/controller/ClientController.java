@@ -54,6 +54,13 @@ public class ClientController {
 
     @GetMapping("/{id}/projects")
     public List<Project> getProjectsForClient(@PathVariable Long id) {
+        User user = currentUserService.getCurrentUser();
+        clientRepository.findByIdWithWorkspace(id)
+                .filter(client -> client.getWorkspace() != null
+                        && client.getWorkspace().getId() != null
+                        && user.getWorkspace() != null
+                        && client.getWorkspace().getId().equals(user.getWorkspace().getId()))
+                .orElseThrow(() -> new RuntimeException("Client not found"));
         return projectRepository.findByClientId(id);
     }
 

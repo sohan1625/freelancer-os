@@ -18,12 +18,41 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public User register(@RequestBody Map<String, String> body) {
-        return authService.register(
+    public ResponseEntity<Map<String, Object>> register(@RequestBody Map<String, String> body) {
+        User user = authService.register(
                 body.get("name"),
                 body.get("email"),
                 body.get("password")
         );
+        return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
+                "name", user.getName(),
+                "email", user.getEmail(),
+                "message", "Account registered successfully."
+        ));
+    }
+
+    @PostMapping("/validate-email")
+    public ResponseEntity<Map<String, Object>> validateEmail(@RequestBody Map<String, String> body) {
+        String normalized = com.freelancer.freelanceros.validation.EmailValidator.validateAndNormalize(body.get("email"));
+        return ResponseEntity.ok(Map.of(
+                "valid", true,
+                "email", normalized,
+                "message", "Email address is valid."
+        ));
+    }
+
+    @PostMapping("/validate-password")
+    public ResponseEntity<Map<String, Object>> validatePassword(@RequestBody Map<String, String> body) {
+        com.freelancer.freelanceros.validation.PasswordValidator.validate(
+                body.get("password"),
+                body.get("username"),
+                body.get("email")
+        );
+        return ResponseEntity.ok(Map.of(
+                "valid", true,
+                "message", "Password meets all complexity and security criteria."
+        ));
     }
 
     // 🔥 UPDATED LOGIN

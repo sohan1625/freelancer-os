@@ -10,6 +10,7 @@ public class RecurringInvoiceRequest {
     private BigDecimal amount;
     private Frequency frequency;
     private LocalDate startDate;
+    private String scheduledTime;
 
     public Long getClientId() { return clientId; }
     public void setClientId(Long clientId) { this.clientId = clientId; }
@@ -25,4 +26,7 @@ public class RecurringInvoiceRequest {
 
     public LocalDate getStartDate() { return startDate; }
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+
+    public String getScheduledTime() { return scheduledTime; }
+    public void setScheduledTime(String scheduledTime) { this.scheduledTime = scheduledTime; }
 }

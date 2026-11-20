@@ -1,6 +1,9 @@
 package com.freelancer.freelanceros.service;
 
 import com.freelancer.freelanceros.model.Invoice;
+import com.freelancer.freelanceros.model.Client;
+import com.freelancer.freelanceros.model.User;
+import com.freelancer.freelanceros.repository.ClientRepository;
 import com.freelancer.freelanceros.repository.InvoiceRepository;
 import org.springframework.stereotype.Service;
 
@@ -13,14 +16,21 @@ import java.util.*;
 public class AnalyticsService {
 
     private final InvoiceRepository invoiceRepository;
+    private final ClientRepository clientRepository;
+    private final CurrentUserService currentUserService;
 
-    public AnalyticsService(InvoiceRepository invoiceRepository) {
+    public AnalyticsService(InvoiceRepository invoiceRepository,
+                            ClientRepository clientRepository,
+                            CurrentUserService currentUserService) {
         this.invoiceRepository = invoiceRepository;
+        this.clientRepository = clientRepository;
+        this.currentUserService = currentUserService;
     }
 
     public Map<String, Object> getAnalytics() {
+        Long workspaceId = getCurrentWorkspaceId();
 
-        List<Invoice> invoices = invoiceRepository.findAll();
+        List<Invoice> invoices = invoiceRepository.findAllByWorkspaceIdWithClient(workspaceId);
 
         int total = invoices.size();
         int paid = 0;
@@ -40,7 +50,7 @@ public class AnalyticsService {
         }
 
         // ── Monthly revenue ───────────────────────────────────────────────────
-        List<Object[]> monthlyRaw = invoiceRepository.findMonthlyRevenue();
+        List<Object[]> monthlyRaw = invoiceRepository.findMonthlyRevenueByWorkspaceId(workspaceId);
         List<Map<String, Object>> monthlyRevenue = new ArrayList<>();
 
         for (Object[] row : monthlyRaw) {
@@ -58,7 +68,7 @@ public class AnalyticsService {
         }
 
         // ── Top clients by revenue ────────────────────────────────────────────
-        List<Object[]> topRaw = invoiceRepository.findTopClientsByRevenue();
+        List<Object[]> topRaw = invoiceRepository.findTopClientsByRevenueAndWorkspaceId(workspaceId);
         List<Map<String, Object>> topClients = new ArrayList<>();
 
         for (Object[] row : topRaw) {
@@ -85,17 +95,21 @@ public class AnalyticsService {
     }
 
     public boolean isClientRisky(Long clientId) {
-        List<Invoice> invoices = invoiceRepository.findAll();
-        int overdueCount = 0;
+        Long workspaceId = getCurrentWorkspaceId();
+        Client client = clientRepository.findByIdWithWorkspace(clientId)
+                .filter(c -> c.getWorkspace() != null
+                        && workspaceId.equals(c.getWorkspace().getId()))
+                .orElseThrow(() -> new RuntimeException("Client not found"));
 
-        for (Invoice invoice : invoices) {
-            if (invoice.getClient() != null &&
-                    invoice.getClient().getId().equals(clientId) &&
-                    "OVERDUE".equals(invoice.getStatus())) {
-                overdueCount++;
-            }
+        return invoiceRepository.countByClientIdAndClientWorkspaceIdAndStatus(
+                client.getId(), workspaceId, "OVERDUE") >= 2;
+    }
+
+    private Long getCurrentWorkspaceId() {
+        User user = currentUserService.getCurrentUser();
+        if (user == null || user.getWorkspace() == null || user.getWorkspace().getId() == null) {
+            throw new RuntimeException("Workspace not found");
         }
-
-        return overdueCount >= 2;
+        return user.getWorkspace().getId();
     }
 }

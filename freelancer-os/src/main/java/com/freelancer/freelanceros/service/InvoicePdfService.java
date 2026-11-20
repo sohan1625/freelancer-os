@@ -1,6 +1,7 @@
 package com.freelancer.freelanceros.service;
 
 import com.freelancer.freelanceros.model.Invoice;
+import com.freelancer.freelanceros.model.User;
 import com.freelancer.freelanceros.repository.InvoiceRepository;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
@@ -30,9 +31,11 @@ import java.time.format.DateTimeFormatter;
 public class InvoicePdfService {
 
     private final InvoiceRepository invoiceRepository;
+    private final CurrentUserService currentUserService;
 
-    public InvoicePdfService(InvoiceRepository invoiceRepository) {
+    public InvoicePdfService(InvoiceRepository invoiceRepository, CurrentUserService currentUserService) {
         this.invoiceRepository = invoiceRepository;
+        this.currentUserService = currentUserService;
     }
 
     private static final DeviceRgb PRIMARY    = new DeviceRgb(0, 0, 0);
@@ -41,9 +44,16 @@ public class InvoicePdfService {
     private static final DeviceRgb ACCENT     = new DeviceRgb(99, 102, 241);
 
     public byte[] generateInvoicePdf(Long invoiceId) throws IOException {
+        User user = currentUserService.getCurrentUser();
+        if (user == null || user.getWorkspace() == null || user.getWorkspace().getId() == null) {
+            throw new RuntimeException("Workspace not found");
+        }
+        return generateInvoicePdfForWorkspace(invoiceId, user.getWorkspace().getId());
+    }
 
+    byte[] generateInvoicePdfForWorkspace(Long invoiceId, Long workspaceId) throws IOException {
         // Use JOIN FETCH to load client in same query — avoids LazyInitializationException
-        Invoice invoice = invoiceRepository.findByIdWithClient(invoiceId)
+        Invoice invoice = invoiceRepository.findByIdAndClientWorkspaceIdWithClient(invoiceId, workspaceId)
                 .orElseThrow(() -> new RuntimeException("Invoice not found"));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

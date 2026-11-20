@@ -17,6 +17,9 @@ public class ClientService {
 
     // Save new client
     public Client saveClient(Client client) {
+        if (client.getEmail() != null && !client.getEmail().isBlank()) {
+            client.setEmail(com.freelancer.freelanceros.validation.EmailValidator.validateAndNormalize(client.getEmail()));
+        }
         return clientRepository.save(client);
     }
 

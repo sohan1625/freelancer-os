@@ -50,6 +50,13 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- H2 FOR LOCAL DEVELOPMENT -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
 		<!-- EMAIL -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

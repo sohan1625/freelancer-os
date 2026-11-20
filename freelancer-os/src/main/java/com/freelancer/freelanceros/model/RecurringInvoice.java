@@ -1,8 +1,10 @@
 package com.freelancer.freelanceros.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "recurring_invoices")
@@ -29,6 +31,10 @@ public class RecurringInvoice {
 
     private LocalDate nextRunDate;
 
+    @ColumnDefault("'09:00:00'")
+    @Column(name = "scheduled_time", nullable = false)
+    private LocalTime scheduledTime = LocalTime.of(9, 0);
+
     private boolean active = true;
 
     public Long getId() { return id; }
@@ -51,6 +57,9 @@ public class RecurringInvoice {
 
     public LocalDate getNextRunDate() { return nextRunDate; }
     public void setNextRunDate(LocalDate nextRunDate) { this.nextRunDate = nextRunDate; }
+
+    public LocalTime getScheduledTime() { return scheduledTime; }
+    public void setScheduledTime(LocalTime scheduledTime) { this.scheduledTime = scheduledTime; }
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }

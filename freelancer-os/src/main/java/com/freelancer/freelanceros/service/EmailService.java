@@ -6,6 +6,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -42,14 +43,15 @@ public class EmailService {
 
         try {
             // Generate PDF bytes
-            byte[] pdfBytes = invoicePdfService.generateInvoicePdf(invoice.getId());
+            byte[] pdfBytes = invoicePdfService.generateInvoicePdfForWorkspace(
+                    invoice.getId(), invoice.getClient().getWorkspace().getId());
 
             MimeMessage message = mailSender.createMimeMessage();
             // multipart = true to support attachments
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(clientEmail);
-            helper.setSubject("INV-" + invoice.getId() + " · ₹" + String.format("%,.0f", invoice.getAmount().doubleValue()));
+            helper.setSubject("INV-" + invoice.getId() + " · ₹" + formatAmount(invoice));
             helper.setText(buildInvoiceHtml(invoice), true);
 
             // Attach PDF
@@ -63,10 +65,19 @@ public class EmailService {
             log.info("Invoice email with PDF sent to {} for invoice #{}", clientEmail, invoice.getId());
 
         } catch (MessagingException e) {
-            log.error("Failed to send invoice email to {}: {}", clientEmail, e.getMessage());
+            log.error("Failed to send invoice email to {}: {}", clientEmail, e.getMessage(), e);
+        } catch (MailException e) {
+            log.error("SMTP authentication or delivery failed for invoice email to {}: {}", clientEmail, e.getMessage(), e);
         } catch (IOException e) {
-            log.error("Failed to generate PDF for invoice #{}: {}", invoice.getId(), e.getMessage());
+            log.error("Failed to generate PDF for invoice #{}: {}", invoice.getId(), e.getMessage(), e);
+        } catch (RuntimeException e) {
+            // e.g. invoice lookup failing while building the PDF — never let this vanish silently
+            log.error("Failed to build invoice email for invoice #{}: {}", invoice.getId(), e.getMessage(), e);
         }
+    }
+
+    private static String formatAmount(Invoice invoice) {
+        return invoice.getAmount() == null ? "0" : String.format("%,.0f", invoice.getAmount().doubleValue());
     }
 
     @Async
@@ -82,16 +93,18 @@ public class EmailService {
             mailSender.send(message);
             log.info("Password reset email sent to {}", toEmail);
         } catch (MessagingException e) {
-            log.error("Failed to send reset email to {}: {}", toEmail, e.getMessage());
+            log.error("Failed to send reset email to {}: {}", toEmail, e.getMessage(), e);
+        } catch (MailException e) {
+            log.error("SMTP authentication or delivery failed for reset email to {}: {}", toEmail, e.getMessage(), e);
         }
     }
 
     private String buildInvoiceHtml(Invoice invoice) {
         String clientName  = invoice.getClient().getName();
-        String amount      = "&#8377;" + String.format("%,.0f", invoice.getAmount().doubleValue());
+        String amount      = "&#8377;" + formatAmount(invoice);
         String dueDate     = invoice.getDueDate() != null ? invoice.getDueDate().toString() : "N/A";
         String portalToken = invoice.getClient().getPortalToken();
-        String portalLink  = portalToken != null ? FRONTEND_URL + "/portal/" + portalToken : "#";
+        String portalLink  = portalToken != null ? frontendUrl + "/portal/" + portalToken : "#";
         String invoiceRef  = "INV-" + invoice.getId();
 
         return """

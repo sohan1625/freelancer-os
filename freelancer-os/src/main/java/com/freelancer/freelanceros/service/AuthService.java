@@ -36,13 +36,21 @@ public class AuthService {
 
     public User register(String name, String email, String password) {
         name = name == null ? "" : name.trim();
-        email = email.toLowerCase();
 
         if (name.isBlank()) {
-            throw new RuntimeException("Username is required");
+            throw new com.freelancer.freelanceros.validation.ValidationException("Username is required.");
+        }
+        if (name.length() < 3 || name.length() > 50) {
+            throw new com.freelancer.freelanceros.validation.ValidationException("Username must be between 3 and 50 characters.");
+        }
+        if (!name.matches("^[a-zA-Z0-9_.-]+$")) {
+            throw new com.freelancer.freelanceros.validation.ValidationException("Username can only contain alphanumeric characters, underscores, hyphens, and periods.");
         }
 
-        if (userRepository.existsByEmail(email)) {
+        String normalizedEmail = com.freelancer.freelanceros.validation.EmailValidator.validateAndNormalize(email);
+        com.freelancer.freelanceros.validation.PasswordValidator.validate(password, name, normalizedEmail);
+
+        if (userRepository.existsByEmail(normalizedEmail)) {
             throw new RuntimeException("Email already registered");
         }
 
@@ -56,7 +64,7 @@ public class AuthService {
 
         User user = new User();
         user.setName(name);
-        user.setEmail(email);
+        user.setEmail(normalizedEmail);
         user.setPassword(passwordEncoder.encode(password));
         user.setWorkspace(workspace);
 
@@ -113,9 +121,9 @@ public class AuthService {
     // ── Forgot password ───────────────────────────────────────────────────────
 
     public void forgotPassword(String email) {
-        email = email.toLowerCase();
+        String normalizedEmail = com.freelancer.freelanceros.validation.EmailValidator.validateAndNormalize(email);
 
-        userRepository.findByEmail(email).ifPresent(user -> {
+        userRepository.findByEmail(normalizedEmail).ifPresent(user -> {
             String token = UUID.randomUUID().toString();
 
             user.setResetToken(token);
@@ -129,12 +137,13 @@ public class AuthService {
     // ── Reset password ────────────────────────────────────────────────────────
 
     public void resetPassword(String token, String email, String newPassword) {
-        if (email == null || email.isBlank()) {
-            throw new RuntimeException("Email is required for password reset.");
+        if (token == null || token.isBlank()) {
+            throw new com.freelancer.freelanceros.validation.ValidationException("Reset token is required.");
         }
 
-        String normalizedEmail = email.toLowerCase();
-        User user = userRepository.findByResetToken(token)
+        String normalizedEmail = com.freelancer.freelanceros.validation.EmailValidator.validateAndNormalize(email);
+
+        User user = userRepository.findByResetToken(token.trim())
                 .filter(u -> u.getEmail() != null && u.getEmail().equalsIgnoreCase(normalizedEmail))
                 .orElseThrow(() -> new RuntimeException("Invalid reset link or email."));
 
@@ -143,9 +152,7 @@ public class AuthService {
             throw new RuntimeException("Reset link has expired.");
         }
 
-        if (newPassword == null || newPassword.length() < 6) {
-            throw new RuntimeException("Password must be at least 6 characters.");
-        }
+        com.freelancer.freelanceros.validation.PasswordValidator.validate(newPassword, user.getName(), normalizedEmail);
 
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setResetToken(null);
