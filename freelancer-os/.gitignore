@@ -73,3 +73,10 @@ tmp/
 Thumbs.db
 .classpath
 .factorypath
+
+# ==========================================
+# LOCAL DATA
+# ==========================================
+data/
+*.mv.db
+*.trace.db
