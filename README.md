@@ -9,9 +9,10 @@ Spring Boot API for freelancer, client, project, invoice, and expense management
 
 ## Run locally
 
-From the `freelancer-os` project folder:
+From the repository root:
 
 ```powershell
+Set-Location freelancer-os
 Copy-Item .env.example .env
 ```
 
